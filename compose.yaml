@@ -1,0 +1,40 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      APP_ORIGIN: https://${DOMAIN:?Set DOMAIN in .env}
+    volumes:
+      - ledger:/var/lib/ledger
+    networks: [backend]
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - certs:/data
+      - caddy_config:/config
+    depends_on: [app]
+    networks:
+      default: {}
+      backend:
+        ipv4_address: 172.29.90.2
+networks:
+  backend:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.29.90.0/24
+volumes:
+  ledger:
+  certs:
+  caddy_config:
